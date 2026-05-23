@@ -1,25 +1,18 @@
 import Link from "next/link";
-import { SignOutButton } from "@/components/SignOutButton";
-import type { UserRole } from "@/lib/types";
+import { AccountMenu } from "@/components/AccountMenu";
 
-export function Header({ email, role }: { email?: string | null; role?: UserRole | null }) {
+export function Header({ email }: { email?: string | null }) {
   return (
-    <header className="border-b border-stone-300 bg-[#f7f7f2]">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <Link href="/dashboard" className="text-xl font-semibold tracking-tight">
+    <header className="relative z-[100] border-b border-stone-200 bg-white/70 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <Link href="/dashboard" className="flex items-center gap-3 text-xl font-bold tracking-tight">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-base font-black text-white shadow-[4px_4px_0_#fbbf24]">
+            C
+          </span>
           Crucible
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-medium text-stone-700">
-          <Link href="/dashboard" className="transition hover:text-stone-950">
-            Dashboard
-          </Link>
-          {role === "admin" ? (
-            <Link href="/admin" className="transition hover:text-stone-950">
-              Admin
-            </Link>
-          ) : null}
-          {email ? <span className="hidden text-stone-500 sm:inline">{email}</span> : null}
-          {email ? <SignOutButton /> : null}
+        <nav className="flex items-center gap-3">
+          {email ? <AccountMenu email={email} /> : null}
         </nav>
       </div>
     </header>

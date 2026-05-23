@@ -1,114 +1,127 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
+type OAuthProvider = "google" | "github";
+
+const oauthOptions: {
+  label: string;
+  provider: OAuthProvider;
+  helper: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    label: "Gmail",
+    provider: "google",
+    helper: "Continue with your Google account",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+        <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.3Z" />
+        <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.5L15.4 17c-.9.6-2 .9-3.4.9-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z" />
+        <path fill="#FBBC05" d="M6.4 13.8a6 6 0 0 1 0-3.6V7.6H3.1a10 10 0 0 0 0 8.8l3.3-2.6Z" />
+        <path fill="#EA4335" d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.9-2.9A9.7 9.7 0 0 0 12 2a10 10 0 0 0-8.9 5.6l3.3 2.6c.8-2.3 3-4.1 5.6-4.1Z" />
+      </svg>
+    ),
+  },
+  {
+    label: "GitHub",
+    provider: "github",
+    helper: "Continue with your developer profile",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.9c-2.9.6-3.5-1.2-3.5-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1 1.6 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.3-.3-4.7-1.1-4.7-5A3.9 3.9 0 0 1 6.6 7.6c-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.8 9.8 0 0 1 5.1 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1.1 2.7c0 3.9-2.4 4.8-4.7 5 .4.3.7.9.7 1.8V21c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"
+        />
+      </svg>
+    ),
+  },
+];
+
 export function AuthForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = useMemo(
     () => searchParams.get("redirectTo") || "/dashboard",
     [searchParams],
   );
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const authError = searchParams.get("error");
+  const [message, setMessage] = useState<string | null>(authError);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function continueWithOAuth(provider: OAuthProvider) {
     setMessage(null);
-    setIsSubmitting(true);
-
     const supabase = createBrowserSupabase();
 
     if (!supabase) {
       setMessage("Supabase environment variables are missing.");
-      setIsSubmitting(false);
       return;
     }
 
-    if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setMessage(error.message);
-      } else {
-        router.push(redirectTo);
-        router.refresh();
-      }
-    } else {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        setMessage(error.message);
-      } else if (data.user && data.session) {
-        await supabase.from("users").upsert({
-          id: data.user.id,
-          email,
-          role: "student",
-        });
-        router.push(redirectTo);
-        router.refresh();
-      } else {
-        setMessage("Account created. Check your email to confirm your login.");
-      }
-    }
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("next", redirectTo);
 
-    setIsSubmitting(false);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: callbackUrl.toString(),
+      },
+    });
+
+    if (error) {
+      setMessage(error.message);
+    }
   }
 
   return (
-    <div className="border border-stone-300 bg-white p-6 shadow-[6px_6px_0_#1c1917]">
-      <div className="grid grid-cols-2 border border-stone-200 p-1">
-        {(["login", "register"] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setMode(item)}
-            className={`px-4 py-2 text-sm font-semibold capitalize ${
-              mode === item ? "bg-stone-950 text-white" : "text-stone-600"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
+    <div
+      data-auth-card
+      className="relative rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur sm:p-8"
+    >
+      <div className="absolute -right-4 -top-4 hidden h-20 w-20 rounded-full bg-amber-200/80 blur-2xl sm:block" />
+      <div className="absolute -bottom-5 -left-5 hidden h-24 w-24 rounded-full bg-sky-200/80 blur-2xl sm:block" />
 
-      <form className="mt-6 space-y-4" onSubmit={submit}>
-        <label className="block">
-          <span className="text-sm font-semibold text-stone-700">Email</span>
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full border border-stone-300 px-3 py-3 outline-none transition focus:border-stone-950"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-stone-700">Password</span>
-          <input
-            required
-            minLength={6}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 w-full border border-stone-300 px-3 py-3 outline-none transition focus:border-stone-950"
-          />
-        </label>
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500 text-base font-black text-white shadow-[4px_4px_0_#fbbf24]">
+            C
+          </span>
+          <div>
+            <p className="text-2xl font-bold text-stone-950">Login with</p>
+            <p className="text-sm font-bold text-stone-500">Choose one account to continue.</p>
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-3">
+          {oauthOptions.map((option) => (
+            <button
+              key={option.provider}
+              type="button"
+              onClick={() => continueWithOAuth(option.provider)}
+              className="group flex items-center justify-between rounded-2xl border border-stone-200 bg-[#fffdf8] px-4 py-3 text-left transition duration-200 hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-[0_18px_45px_rgba(14,165,233,0.12)]"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-stone-950 shadow-sm ring-1 ring-stone-200 transition group-hover:scale-105">
+                  {option.icon}
+                </span>
+                <span>
+                  <span className="block text-base font-bold text-stone-950">{option.label}</span>
+                  <span className="block text-sm font-bold text-stone-500">{option.helper}</span>
+                </span>
+              </span>
+              <span className="text-xl font-bold text-stone-300 transition group-hover:translate-x-1 group-hover:text-sky-500">
+                →
+              </span>
+            </button>
+          ))}
+        </div>
+
         {message ? (
-          <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-900">
             {message}
           </p>
         ) : null}
-        <button
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-amber-500 px-4 py-3 font-semibold text-stone-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Working..." : mode === "login" ? "Log in" : "Create account"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

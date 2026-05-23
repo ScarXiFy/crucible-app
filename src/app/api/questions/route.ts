@@ -7,14 +7,10 @@ type QuestionOptionInput = {
 };
 
 export async function POST(request: Request) {
-  const { supabase, profile, response } = await requireRouteUser();
+  const { supabase, response } = await requireRouteUser();
 
   if (response) {
     return response;
-  }
-
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
 
   const body = (await request.json()) as {

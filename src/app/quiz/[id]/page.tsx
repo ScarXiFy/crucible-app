@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function QuizPage({ params }: PageProps<"/quiz/[id]">) {
   const { id } = await params;
-  const { supabase, authUser, profile } = await getCurrentUser();
+  const { supabase, authUser } = await getCurrentUser();
 
   if (!supabase) {
     notFound();
@@ -33,7 +33,7 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[id]">) {
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-stone-950">
-      <Header email={authUser.email} role={profile?.role} />
+      <Header email={authUser.email} />
       <section className="mx-auto max-w-4xl px-6 py-10">
         <QuizRunner quiz={quiz as QuizWithQuestions} />
       </section>

@@ -8,6 +8,11 @@ type DraftOption = {
   isCorrect: boolean;
 };
 
+const inputClass =
+  "mt-2 w-full rounded-2xl border border-stone-200 bg-[#fffdf8] px-4 py-3 font-bold text-stone-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100";
+
+const labelClass = "text-sm font-bold text-stone-700";
+
 export function AdminQuizForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -94,81 +99,128 @@ export function AdminQuizForm() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <form onSubmit={createQuiz} className="border border-stone-300 bg-white p-6">
-        <h2 className="text-2xl font-semibold">Create quiz</h2>
-        <div className="mt-5 space-y-4">
+    <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+      <form
+        onSubmit={createQuiz}
+        className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.07)] backdrop-blur sm:p-7"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
+              Step 1
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-normal text-stone-950">Quiz details</h2>
+            <p className="mt-2 text-sm leading-6 text-stone-600">
+              Give students enough context before they start.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-5">
           <label className="block">
-            <span className="text-sm font-semibold text-stone-700">Title</span>
+            <span className={labelClass}>Title</span>
             <input
               required
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="mt-2 w-full border border-stone-300 px-3 py-3 outline-none focus:border-stone-950"
+              placeholder="Thermodynamics review"
+              className={inputClass}
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-stone-700">Subject</span>
+            <span className={labelClass}>Subject</span>
             <input
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="mt-2 w-full border border-stone-300 px-3 py-3 outline-none focus:border-stone-950"
+              placeholder="Science"
+              className={inputClass}
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-stone-700">Description</span>
+            <span className={labelClass}>Description</span>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="mt-2 min-h-28 w-full border border-stone-300 px-3 py-3 outline-none focus:border-stone-950"
+              placeholder="Short instructions or scope for this quiz."
+              className={`${inputClass} min-h-32 resize-y leading-7`}
             />
           </label>
           <button
             disabled={isSavingQuiz}
-            className="rounded-md bg-stone-950 px-5 py-3 font-semibold text-white transition hover:bg-stone-800 disabled:opacity-50"
+            className="rounded-2xl bg-sky-500 px-5 py-3 font-bold text-white shadow-[6px_6px_0_#fbbf24] transition duration-200 hover:-translate-y-1 hover:bg-sky-600 hover:shadow-[9px_9px_0_#fbbf24] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSavingQuiz ? "Creating..." : "Create quiz"}
           </button>
         </div>
       </form>
 
-      <form onSubmit={addQuestion} className="border border-stone-300 bg-white p-6">
-        <h2 className="text-2xl font-semibold">Add question</h2>
-        <div className="mt-5 space-y-4">
+      <form
+        onSubmit={addQuestion}
+        className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.07)] backdrop-blur sm:p-7"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">
+              Step 2
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-normal text-stone-950">Add question</h2>
+            <p className="mt-2 text-sm leading-6 text-stone-600">
+              Add four choices and mark exactly one correct answer.
+            </p>
+          </div>
+          {quizId ? (
+            <div className="rounded-2xl border border-stone-200 bg-[#fbf7ef] px-4 py-3">
+              <p className="text-xs font-bold uppercase text-stone-400">Active quiz ID</p>
+              <p className="mt-1 max-w-44 truncate font-mono text-xs font-bold text-stone-700">{quizId}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-6 space-y-5">
           <label className="block">
-            <span className="text-sm font-semibold text-stone-700">Quiz ID</span>
+            <span className={labelClass}>Quiz ID</span>
             <input
               required
               value={quizId}
               onChange={(event) => setQuizId(event.target.value)}
-              className="mt-2 w-full border border-stone-300 px-3 py-3 font-mono text-sm outline-none focus:border-stone-950"
+              placeholder="Created quiz ID appears here"
+              className={`${inputClass} font-mono text-sm`}
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-stone-700">Question</span>
+            <span className={labelClass}>Question</span>
             <textarea
               required
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              className="mt-2 min-h-24 w-full border border-stone-300 px-3 py-3 outline-none focus:border-stone-950"
+              placeholder="What should the learner answer?"
+              className={`${inputClass} min-h-28 resize-y leading-7`}
             />
           </label>
           <div className="space-y-3">
+            <p className={labelClass}>Answer choices</p>
             {options.map((option, index) => (
-              <div key={index} className="grid grid-cols-[1fr_auto] gap-3">
+              <div key={index} className="grid gap-3 sm:grid-cols-[1fr_132px]">
                 <input
                   required
                   value={option.label}
                   onChange={(event) => updateOption(index, { label: event.target.value })}
                   placeholder={`Option ${index + 1}`}
-                  className="border border-stone-300 px-3 py-3 outline-none focus:border-stone-950"
+                  className={inputClass}
                 />
-                <label className="flex items-center gap-2 border border-stone-300 px-3 text-sm font-semibold">
+                <label
+                  className={`mt-2 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition ${
+                    option.isCorrect
+                      ? "border-sky-200 bg-sky-50 text-sky-700"
+                      : "border-stone-200 bg-[#fffdf8] text-stone-600"
+                  }`}
+                >
                   <input
                     type="radio"
                     name="correct"
                     checked={option.isCorrect}
                     onChange={() => updateOption(index, { isCorrect: true })}
+                    className="accent-sky-500"
                   />
                   Correct
                 </label>
@@ -176,13 +228,13 @@ export function AdminQuizForm() {
             ))}
           </div>
           {message ? (
-            <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-900">
               {message}
             </p>
           ) : null}
           <button
             disabled={isSavingQuestion}
-            className="rounded-md bg-amber-500 px-5 py-3 font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+            className="rounded-2xl bg-stone-950 px-5 py-3 font-bold text-white transition duration-200 hover:-translate-y-1 hover:bg-stone-800 hover:shadow-[0_16px_35px_rgba(15,23,42,0.16)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSavingQuestion ? "Adding..." : "Add question"}
           </button>
