@@ -14,17 +14,10 @@ export function LandingAnimations() {
       }),
       animate("[data-hero-art]", {
         opacity: { from: 0, to: 1 },
-        scale: { from: 0.94, to: 1 },
-        rotate: { from: -2, to: 0 },
-        duration: 900,
+        scale: { from: 0.96, to: 1 },
+        y: { from: 18, to: 0 },
+        duration: 1000,
         delay: 120,
-        ease: "outBack",
-      }),
-      animate("[data-subject-chip]", {
-        opacity: { from: 0, to: 1 },
-        y: { from: 10, to: 0 },
-        delay: stagger(70, { start: 420 }),
-        duration: 500,
         ease: "outCubic",
       }),
     ];
@@ -77,12 +70,12 @@ export function AcademicHeroVisual() {
 
     const floatAnimation = animate(sceneElement.querySelectorAll("[data-float]"), {
       y: [
-        { to: -10, duration: 1600 },
-        { to: 0, duration: 1600 },
+        { to: -8, duration: 2200 },
+        { to: 0, duration: 2200 },
       ],
       rotate: [
-        { to: 1.5, duration: 1600 },
-        { to: -1.5, duration: 1600 },
+        { to: 1, duration: 2200 },
+        { to: -1, duration: 2200 },
       ],
       loop: true,
       alternate: true,
@@ -95,15 +88,17 @@ export function AcademicHeroVisual() {
       const x = (event.clientX - rect.left) / rect.width - 0.5;
       const y = (event.clientY - rect.top) / rect.height - 0.5;
 
-      sceneElement.style.setProperty("--tilt-x", `${y * -10}deg`);
-      sceneElement.style.setProperty("--tilt-y", `${x * 14}deg`);
-      sceneElement.style.setProperty("--pen-shift", `${x * 14}px`);
+      sceneElement.style.setProperty("--tilt-x", `${62 + y * -8}deg`);
+      sceneElement.style.setProperty("--tilt-y", `${x * 10}deg`);
+      sceneElement.style.setProperty("--tilt-z", `${-24 + x * 8}deg`);
+      sceneElement.style.setProperty("--node-shift", `${x * 18}px`);
     }
 
     function resetTilt() {
-      sceneElement.style.setProperty("--tilt-x", "-4deg");
-      sceneElement.style.setProperty("--tilt-y", "8deg");
-      sceneElement.style.setProperty("--pen-shift", "0px");
+      sceneElement.style.setProperty("--tilt-x", "62deg");
+      sceneElement.style.setProperty("--tilt-y", "0deg");
+      sceneElement.style.setProperty("--tilt-z", "-24deg");
+      sceneElement.style.setProperty("--node-shift", "0px");
     }
 
     sceneElement.addEventListener("pointermove", handlePointerMove);
@@ -120,109 +115,51 @@ export function AcademicHeroVisual() {
     <div
       ref={sceneRef}
       data-hero-art
-      className="group relative mx-auto flex min-h-[210px] w-full max-w-2xl items-center justify-center [perspective:1200px] sm:min-h-[420px] lg:min-h-[500px]"
+      className="group relative mx-auto flex min-h-[280px] w-full max-w-2xl items-center justify-center [perspective:1200px] sm:min-h-[470px] lg:min-h-[540px]"
       style={
         {
-          "--tilt-x": "-4deg",
-          "--tilt-y": "8deg",
-          "--pen-shift": "0px",
+          "--tilt-x": "62deg",
+          "--tilt-y": "0deg",
+          "--tilt-z": "-24deg",
+          "--node-shift": "0px",
         } as React.CSSProperties
       }
-      aria-label="Interactive 3D notebook and pen study scene"
+      aria-label="Interactive abstract quiz review system"
     >
-      <div className="absolute left-8 top-8 h-28 w-28 rounded-full bg-sky-200/80 blur-3xl" />
-      <div className="absolute bottom-10 right-6 h-32 w-32 rounded-full bg-amber-200/80 blur-3xl" />
-      <div className="absolute inset-x-10 bottom-2 h-12 rounded-full bg-stone-900/10 blur-2xl" />
+      <div className="absolute inset-x-12 bottom-10 h-10 bg-black/10 blur-2xl" />
 
-      <div
-        data-float
-        className="absolute right-2 top-0 z-30 rounded-2xl border border-stone-200 bg-white px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-200 group-hover:-translate-y-2 sm:right-8 sm:top-8 sm:px-4 sm:py-3"
-      >
-        <p className="text-xs font-bold text-stone-500">Today</p>
-        <p className="mt-1 text-2xl font-bold text-emerald-600">8/10</p>
-      </div>
+      <div className="relative h-[280px] w-[280px] sm:h-[470px] sm:w-[470px]">
+        <div
+          data-float
+          className="absolute inset-6 rounded-full border border-black/80 transition-transform duration-300 [transform:rotateX(var(--tilt-x))_rotateY(var(--tilt-y))_rotateZ(var(--tilt-z))] [transform-style:preserve-3d] sm:inset-10"
+        />
+        <div
+          data-float
+          className="absolute inset-16 rounded-full border border-black/35 transition-transform duration-300 [transform:rotateX(calc(var(--tilt-x)_+_4deg))_rotateY(var(--tilt-y))_rotateZ(calc(var(--tilt-z)_+_46deg))] [transform-style:preserve-3d] sm:inset-24"
+        />
 
-      <div
-        data-float
-        className="absolute bottom-0 left-2 z-30 rounded-2xl border border-stone-200 bg-white px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition duration-200 group-hover:-translate-x-2 group-hover:-translate-y-1 sm:bottom-16 sm:left-0 sm:px-4 sm:py-3"
-      >
-        <p className="text-xs font-bold text-stone-500">Next topic</p>
-        <p className="mt-1 text-sm font-bold text-stone-900">Calculus limits</p>
-      </div>
-
-      <div
-        data-float
-        className="absolute right-8 top-12 z-0 h-[150px] w-[170px] rounded-[1.4rem] border border-amber-200 bg-amber-100/90 shadow-[16px_18px_0_rgba(15,23,42,0.08)] [transform:translateZ(-12px)_rotate(7deg)] sm:right-20 sm:top-12 sm:h-[260px] sm:w-[300px]"
-      >
-        <div className="absolute left-6 top-6 h-3 w-20 rounded-full bg-amber-300/80 sm:w-32" />
-        <div className="absolute left-6 top-12 h-2 w-28 rounded-full bg-amber-200 sm:top-16 sm:w-44" />
-        <div className="absolute left-6 top-20 h-2 w-20 rounded-full bg-amber-200 sm:top-24 sm:w-36" />
-      </div>
-
-      <div
-        className="relative h-[205px] w-[250px] rounded-[1.7rem] bg-sky-400 shadow-[20px_24px_0_rgba(15,23,42,0.12)] transition-transform duration-300 ease-out [transform:rotateX(var(--tilt-x))_rotateY(var(--tilt-y))_rotateZ(-5deg)] [transform-style:preserve-3d] group-hover:scale-[1.03] sm:h-[430px] sm:w-[500px] sm:rounded-[2.4rem] sm:shadow-[34px_36px_0_rgba(15,23,42,0.12)]"
-      >
-        <div className="absolute inset-y-5 left-3 z-20 flex flex-col justify-between sm:inset-y-10 sm:left-5">
-          {[1, 2, 3, 4, 5].map((ring) => (
-            <span
-              key={ring}
-              className="h-4 w-4 rounded-full border-2 border-sky-700 bg-white shadow-sm sm:h-5 sm:w-5"
-            />
-          ))}
+        <div className="absolute left-1/2 top-1/2 h-28 w-28 border-2 border-black bg-white shadow-[20px_20px_0_rgba(0,0,0,0.08)] transition-transform duration-300 [transform:translate(-50%,-50%)_rotateX(var(--tilt-x))_rotateY(var(--tilt-y))_rotateZ(45deg)] [transform-style:preserve-3d] group-hover:shadow-[28px_28px_0_rgba(0,0,0,0.1)] sm:h-40 sm:w-40">
+          <div className="absolute left-4 top-5 h-2 w-16 bg-black sm:left-6 sm:top-8 sm:w-24" />
+          <div className="absolute left-4 top-11 h-2 w-10 bg-black/55 sm:left-6 sm:top-16 sm:w-16" />
+          <div className="absolute bottom-5 left-4 h-2 w-20 bg-black/20 sm:bottom-8 sm:left-6 sm:w-28" />
         </div>
 
-        <div className="absolute inset-3 rounded-[1.35rem] border border-stone-200 bg-[#fffdf8] p-4 pl-8 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)] [transform:translateZ(42px)] sm:inset-5 sm:rounded-[2rem] sm:p-8 sm:pl-12">
-          <div className="flex items-center justify-between border-b border-stone-200 pb-3 sm:pb-5">
-            <div>
-              <p className="text-xs font-bold uppercase text-sky-700">Quick quiz</p>
-              <h2 className="mt-1 text-xl font-bold text-stone-950 sm:text-3xl">Study desk</h2>
-            </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-              Ready
-            </span>
-          </div>
+        <div
+          data-float
+          className="absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-black transition-transform duration-300 [transform:translateX(calc(var(--node-shift)_*_-0.55))] sm:left-14 sm:h-5 sm:w-5"
+        />
+        <div
+          data-float
+          className="absolute right-8 top-24 h-4 w-4 rounded-full border border-black bg-white transition-transform duration-300 [transform:translateX(var(--node-shift))] sm:right-16 sm:top-28 sm:h-5 sm:w-5"
+        />
+        <div
+          data-float
+          className="absolute bottom-10 right-28 h-4 w-4 rounded-full bg-black/55 transition-transform duration-300 [transform:translateX(calc(var(--node-shift)_*_-0.3))] sm:bottom-16 sm:right-40 sm:h-5 sm:w-5"
+        />
 
-          <div className="mt-3 space-y-2 sm:mt-6 sm:space-y-4">
-            {["Read the prompt", "Choose an answer", "Review your score"].map(
-              (question, index) => (
-                <div
-                  key={question}
-                  className="flex items-center gap-2 rounded-2xl border border-stone-200 bg-white p-2 shadow-sm transition duration-200 group-hover:translate-x-1 sm:gap-3 sm:p-4"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800">
-                    {index + 1}
-                  </span>
-                  <span className="text-xs font-bold text-stone-700 sm:text-sm">{question}</span>
-                </div>
-              ),
-            )}
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-6">
-            {["A", "B", "C"].map((answer) => (
-              <div
-                key={answer}
-                className="rounded-xl bg-stone-100 py-2 text-center text-sm font-bold text-stone-600 shadow-sm transition duration-200 group-hover:-translate-y-1 sm:py-3"
-              >
-                {answer}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute -right-5 bottom-1 h-32 w-5 rounded-full bg-amber-400 shadow-[8px_10px_0_rgba(15,23,42,0.12)] transition-transform duration-300 [transform:translateZ(82px)_rotate(25deg)_translateX(var(--pen-shift))] group-hover:rotate-[30deg] sm:-right-10 sm:bottom-4 sm:h-64 sm:w-6">
-          <div className="absolute -top-5 left-0 h-8 w-5 rounded-t-full bg-stone-900 sm:w-6" />
-          <div className="absolute -bottom-5 left-0 h-8 w-5 rounded-b-full bg-sky-500 sm:w-6" />
-        </div>
-      </div>
-
-      <div
-        data-float
-        className="absolute bottom-8 right-12 z-20 hidden rounded-2xl bg-stone-950 px-5 py-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)] [transform:translateZ(86px)_rotate(-4deg)] sm:block"
-      >
-        <p className="text-xs font-bold text-sky-200">Progress</p>
-        <div className="mt-2 h-2 w-28 rounded-full bg-white/20">
-          <div className="h-full w-4/5 rounded-full bg-amber-300" />
+        <div className="absolute bottom-4 left-1/2 h-px w-52 -translate-x-1/2 bg-black/20 sm:w-80" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.65rem] font-black uppercase tracking-[0.12em] text-neutral-500 sm:text-xs sm:tracking-[0.16em]">
+          Topic / Attempt / Result
         </div>
       </div>
     </div>

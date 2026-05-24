@@ -1,7 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  buildAuthModeHref,
+  buildAuthCallbackUrl,
+  getAuthModeCopy,
+  type AuthMode,
+} from "@/components/AuthForm.helpers";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 type OAuthProvider = "google" | "github";
@@ -40,14 +47,42 @@ const oauthOptions: {
   },
 ];
 
-export function AuthForm() {
-  const searchParams = useSearchParams();
-  const redirectTo = useMemo(
-    () => searchParams.get("redirectTo") || "/dashboard",
-    [searchParams],
-  );
-  const authError = searchParams.get("error");
+type AuthFormProps = {
+  authError: string | null;
+  initialMode: AuthMode;
+  redirectTo: string;
+};
+
+export function AuthForm({ authError, initialMode, redirectTo }: AuthFormProps) {
+  const router = useRouter();
+  const mode = initialMode;
+  const modeCopy = getAuthModeCopy(mode);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(authError);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function ensureProfile(userId: string, email: string) {
+    const supabase = createBrowserSupabase();
+
+    if (!supabase) {
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!profile) {
+      await supabase.from("users").insert({
+        id: userId,
+        email,
+        role: "student",
+      });
+    }
+  }
 
   async function continueWithOAuth(provider: OAuthProvider) {
     setMessage(null);
@@ -58,18 +93,82 @@ export function AuthForm() {
       return;
     }
 
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", redirectTo);
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: callbackUrl.toString(),
+        redirectTo: buildAuthCallbackUrl(window.location.origin, redirectTo),
       },
     });
 
     if (error) {
       setMessage(error.message);
+    }
+  }
+
+  async function submitPasswordAuth(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+
+    const email = username.trim();
+
+    if (!email || !password) {
+      setMessage("Enter your username and password.");
+      return;
+    }
+
+    const supabase = createBrowserSupabase();
+
+    if (!supabase) {
+      setMessage("Supabase environment variables are missing.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (mode === "login") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          setMessage(error.message);
+          return;
+        }
+
+        if (data.user) {
+          await ensureProfile(data.user.id, data.user.email ?? email);
+        }
+
+        router.replace(redirectTo);
+        router.refresh();
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: buildAuthCallbackUrl(window.location.origin, redirectTo),
+        },
+      });
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (data.session && data.user) {
+        await ensureProfile(data.user.id, data.user.email ?? email);
+        router.replace(redirectTo);
+        router.refresh();
+        return;
+      }
+
+      setMessage("Check your email to confirm your account, then come back to login.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -87,12 +186,68 @@ export function AuthForm() {
             C
           </span>
           <div>
-            <p className="text-2xl font-bold text-stone-950">Login with</p>
-            <p className="text-sm font-bold text-stone-500">Choose one account to continue.</p>
+            <p className="text-2xl font-bold text-stone-950">{modeCopy.title}</p>
+            <p className="text-sm font-bold text-stone-500">{modeCopy.helper}</p>
           </div>
         </div>
 
-        <div className="mt-7 grid gap-3">
+        <div className="mt-7 grid grid-cols-2 rounded-2xl border border-stone-200 bg-stone-100 p-1">
+          {(["login", "register"] as const).map((authMode) => (
+            <Link
+              key={authMode}
+              href={buildAuthModeHref(authMode, redirectTo)}
+              className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                mode === authMode
+                  ? "bg-white text-stone-950 shadow-sm"
+                  : "text-stone-500 hover:text-stone-950"
+              }`}
+            >
+              {authMode === "login" ? "Login" : "Register"}
+            </Link>
+          ))}
+        </div>
+
+        <form onSubmit={submitPasswordAuth} className="mt-5 grid gap-4">
+          <label className="grid gap-2 text-sm font-bold text-stone-700">
+            Username
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              type="email"
+              autoComplete="username"
+              placeholder="name@example.com"
+              className="h-12 rounded-2xl border border-stone-200 bg-[#fffdf8] px-4 text-base font-bold text-stone-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-bold text-stone-700">
+            Password
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              placeholder="Enter your password"
+              className="h-12 rounded-2xl border border-stone-200 bg-[#fffdf8] px-4 text-base font-bold text-stone-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-2xl bg-stone-950 px-4 py-3 text-sm font-bold text-white shadow-[6px_6px_0_#fbbf24] transition duration-200 hover:-translate-y-1 hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {isSubmitting ? modeCopy.pendingLabel : modeCopy.submitLabel}
+          </button>
+        </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-stone-200" />
+          <span className="text-xs font-black uppercase text-stone-400">or</span>
+          <span className="h-px flex-1 bg-stone-200" />
+        </div>
+
+        <div className="grid gap-3">
           {oauthOptions.map((option) => (
             <button
               key={option.provider}
@@ -110,7 +265,7 @@ export function AuthForm() {
                 </span>
               </span>
               <span className="text-xl font-bold text-stone-300 transition group-hover:translate-x-1 group-hover:text-sky-500">
-                →
+                -&gt;
               </span>
             </button>
           ))}

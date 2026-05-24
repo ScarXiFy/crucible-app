@@ -32,9 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Quiz ID and question are required." }, { status: 400 });
   }
 
-  if (cleanOptions.length < 2 || !cleanOptions.some((option) => option.is_correct)) {
+  if (cleanOptions.length < 1 || !cleanOptions.some((option) => option.is_correct)) {
     return NextResponse.json(
-      { error: "Add at least two options and mark one correct answer." },
+      { error: "Add an answer and mark one correct answer." },
       { status: 400 },
     );
   }

@@ -1,43 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AdminQuizForm, type AdminQuizFormInitialQuiz } from "@/components/AdminQuizForm";
+import { DashboardQuizBuilder } from "@/components/DashboardQuizBuilder";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { getCurrentUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ quizId?: string | string[] }>;
-}) {
-  const { supabase, authUser, profile } = await getCurrentUser();
+export default async function CreateDashboardQuizPage() {
+  const { supabase, authUser } = await getCurrentUser();
 
   if (!supabase) {
     return <EmptyState title="Supabase is not configured" body="Add your project URL and anon key to .env.local." />;
   }
 
   if (!authUser) {
-    redirect("/auth?redirectTo=/admin");
-  }
-
-  const params = await searchParams;
-  const editQuizId = typeof params.quizId === "string" ? params.quizId : null;
-  let initialQuiz: AdminQuizFormInitialQuiz | null = null;
-
-  if (editQuizId) {
-    const { data } = await supabase
-      .from("quizzes")
-      .select("id,title,description,subject,created_by")
-      .eq("id", editQuizId)
-      .maybeSingle();
-
-    initialQuiz = data;
-  }
-
-  if (profile?.role !== "admin" && initialQuiz?.created_by !== authUser.id) {
-    redirect("/dashboard");
+    redirect("/auth?redirectTo=/dashboard/create");
   }
 
   return (
@@ -54,9 +32,16 @@ export default async function AdminPage({
         }
       />
       <section className="mx-auto max-w-7xl px-6 py-10">
-        <div>
-          <AdminQuizForm initialQuiz={initialQuiz} />
+        <div className="mb-8 max-w-3xl">
+          <h1 className="text-4xl font-bold tracking-normal text-stone-950 sm:text-5xl">
+            Create a new quiz
+          </h1>
+          <p className="mt-3 text-base leading-7 text-stone-600">
+            Add the details and questions first. Create the quiz when everything is ready.
+          </p>
         </div>
+
+        <DashboardQuizBuilder />
       </section>
     </main>
   );
