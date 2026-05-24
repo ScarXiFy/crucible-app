@@ -26,14 +26,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { supabase, user, profile, response } = await requireRouteUser();
+  const { supabase, user, response } = await requireRouteUser();
 
   if (response) {
     return response;
-  }
-
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
 
   const body = (await request.json()) as {

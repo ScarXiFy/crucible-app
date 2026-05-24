@@ -2,6 +2,10 @@ import type { Json, QuizQuestion } from "@/lib/types";
 
 export type SubmittedAnswers = Record<string, string>;
 
+function normalizeTextAnswer(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function scoreQuiz(
   questions: Pick<QuizQuestion, "id" | "options">[],
   answers: SubmittedAnswers,
@@ -10,13 +14,20 @@ export function scoreQuiz(
     (result, question) => {
       const chosenOptionId = answers[question.id];
       const correctOption = question.options.find((option) => option.is_correct);
+      const isIdentificationQuestion = question.options.length === 1;
 
-      if (correctOption && chosenOptionId === correctOption.id) {
+      if (
+        correctOption &&
+        (chosenOptionId === correctOption.id ||
+          (isIdentificationQuestion &&
+            normalizeTextAnswer(chosenOptionId ?? "") === normalizeTextAnswer(correctOption.label)))
+      ) {
         result.score += 1;
       }
 
       result.answerKey[question.id] = {
-        selectedOptionId: chosenOptionId ?? null,
+        selectedOptionId: isIdentificationQuestion ? null : chosenOptionId ?? null,
+        textAnswer: isIdentificationQuestion ? chosenOptionId ?? null : null,
         correctOptionId: correctOption?.id ?? null,
       };
 
@@ -27,7 +38,7 @@ export function scoreQuiz(
       total: questions.length,
       answerKey: {} as Record<
         string,
-        { selectedOptionId: string | null; correctOptionId: string | null }
+        { selectedOptionId: string | null; textAnswer: string | null; correctOptionId: string | null }
       >,
     },
   );

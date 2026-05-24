@@ -7,14 +7,10 @@ type QuestionOptionInput = {
 };
 
 export async function POST(request: Request) {
-  const { supabase, profile, response } = await requireRouteUser();
+  const { supabase, response } = await requireRouteUser();
 
   if (response) {
     return response;
-  }
-
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
 
   const body = (await request.json()) as {
@@ -36,9 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Quiz ID and question are required." }, { status: 400 });
   }
 
-  if (cleanOptions.length < 2 || !cleanOptions.some((option) => option.is_correct)) {
+  if (cleanOptions.length < 1 || !cleanOptions.some((option) => option.is_correct)) {
     return NextResponse.json(
-      { error: "Add at least two options and mark one correct answer." },
+      { error: "Add an answer and mark one correct answer." },
       { status: 400 },
     );
   }

@@ -14,7 +14,7 @@ export default async function ResultsPage({
   params,
 }: PageProps<"/results/[attemptId]">) {
   const { attemptId } = await params;
-  const { supabase, authUser, profile } = await getCurrentUser();
+  const { supabase, authUser } = await getCurrentUser();
 
   if (!supabase) {
     notFound();
@@ -42,7 +42,7 @@ export default async function ResultsPage({
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-stone-950">
-      <Header email={authUser.email} role={profile?.role} />
+      <Header email={authUser.email} />
       <section className="mx-auto max-w-3xl px-6 py-10">
         <div className="border border-stone-300 bg-white p-8 shadow-[6px_6px_0_#1c1917]">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-amber-700">

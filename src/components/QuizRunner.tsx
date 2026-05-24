@@ -11,8 +11,12 @@ export function QuizRunner({ quiz }: { quiz: QuizWithQuestions }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentQuestion = quiz.questions[currentIndex];
-  const answeredCount = useMemo(() => Object.keys(answers).length, [answers]);
+  const answeredCount = useMemo(
+    () => Object.values(answers).filter((answer) => answer.trim().length > 0).length,
+    [answers],
+  );
   const isLastQuestion = currentIndex === quiz.questions.length - 1;
+  const isIdentificationQuestion = currentQuestion?.options.length === 1;
 
   async function submit() {
     setMessage(null);
@@ -62,31 +66,48 @@ export function QuizRunner({ quiz }: { quiz: QuizWithQuestions }) {
         <h2 className="text-3xl font-semibold leading-tight text-stone-950">
           {currentQuestion.prompt}
         </h2>
-        <div className="mt-8 space-y-3">
-          {currentQuestion.options.map((option) => {
-            const isSelected = answers[currentQuestion.id] === option.id;
+        {isIdentificationQuestion ? (
+          <label className="mt-8 block">
+            <span className="text-sm font-semibold text-stone-600">Your answer</span>
+            <input
+              value={answers[currentQuestion.id] ?? ""}
+              onChange={(event) =>
+                setAnswers((current) => ({
+                  ...current,
+                  [currentQuestion.id]: event.target.value,
+                }))
+              }
+              className="mt-2 w-full rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none transition focus:border-stone-950"
+              placeholder="Type your answer"
+            />
+          </label>
+        ) : (
+          <div className="mt-8 space-y-3">
+            {currentQuestion.options.map((option) => {
+              const isSelected = answers[currentQuestion.id] === option.id;
 
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() =>
-                  setAnswers((current) => ({
-                    ...current,
-                    [currentQuestion.id]: option.id,
-                  }))
-                }
-                className={`w-full border px-4 py-4 text-left transition ${
-                  isSelected
-                    ? "border-stone-950 bg-stone-950 text-white"
-                    : "border-stone-300 bg-[#fbfaf5] text-stone-800 hover:border-stone-950"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() =>
+                    setAnswers((current) => ({
+                      ...current,
+                      [currentQuestion.id]: option.id,
+                    }))
+                  }
+                  className={`w-full border px-4 py-4 text-left transition ${
+                    isSelected
+                      ? "border-stone-950 bg-stone-950 text-white"
+                      : "border-stone-300 bg-[#fbfaf5] text-stone-800 hover:border-stone-950"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {message ? (

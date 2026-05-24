@@ -38,7 +38,9 @@ export async function POST(
   const quizWithQuestions = quiz as QuizWithQuestions;
   const result = scoreQuiz(quizWithQuestions.questions, body.answers);
 
-  if (Object.keys(body.answers).length !== result.total) {
+  const answeredCount = Object.values(body.answers).filter((answer) => answer.trim().length > 0).length;
+
+  if (answeredCount !== result.total) {
     return NextResponse.json(
       { error: "Every question must be answered before submission." },
       { status: 400 },

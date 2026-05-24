@@ -10,12 +10,10 @@ type DraftOption = {
   isCorrect: boolean;
 };
 
-export type AdminQuizFormInitialQuiz = {
-  id: string;
-  title: string;
-  subject: string | null;
-  description: string | null;
-  created_by?: string | null;
+type DraftQuestion = {
+  prompt: string;
+  type: QuestionType;
+  options: DraftOption[];
 };
 
 const questionTypes: { label: string; value: QuestionType }[] = [
@@ -53,19 +51,18 @@ function getInitialOptions(type: QuestionType): DraftOption[] {
   ];
 }
 
-export function AdminQuizForm({ initialQuiz }: { initialQuiz?: AdminQuizFormInitialQuiz | null }) {
+export function DashboardQuizBuilder() {
   const router = useRouter();
-  const isEditing = Boolean(initialQuiz);
-  const [title, setTitle] = useState(initialQuiz?.title || "");
-  const [subject, setSubject] = useState(initialQuiz?.subject || "");
-  const [quizId, setQuizId] = useState(initialQuiz?.id || "");
+  const [title, setTitle] = useState("");
+  const [subject, setSubject] = useState("");
   const [questionType, setQuestionType] = useState<QuestionType>("multiple_choice");
   const [prompt, setPrompt] = useState("");
   const [options, setOptions] = useState<DraftOption[]>(getInitialOptions("multiple_choice"));
+  const [questions, setQuestions] = useState<DraftQuestion[]>([]);
   const [message, setMessage] = useState<string | null>(null);
-  const [isSavingQuiz, setIsSavingQuiz] = useState(false);
-  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
+  const canCreateQuiz = title.trim().length > 0 && questions.length > 0;
   const questionTypeLabel = useMemo(
     () => questionTypes.find((type) => type.value === questionType)?.label ?? "Question",
     [questionType],
@@ -89,37 +86,8 @@ export function AdminQuizForm({ initialQuiz }: { initialQuiz?: AdminQuizFormInit
     );
   }
 
-  async function saveQuizDetails(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function addQuestion() {
     setMessage(null);
-    setIsSavingQuiz(true);
-
-    const response = await fetch(isEditing ? `/api/quizzes/${initialQuiz!.id}` : "/api/quizzes", {
-      method: isEditing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, subject }),
-    });
-    const payload = (await response.json()) as { id?: string; error?: string };
-
-    if (!response.ok || !payload.id) {
-      setMessage(payload.error || `Could not ${isEditing ? "save changes" : "create quiz"}.`);
-    } else {
-      setQuizId(payload.id);
-      setMessage(isEditing ? "Quiz details saved." : "Quiz created. You can add questions now.");
-      router.refresh();
-    }
-
-    setIsSavingQuiz(false);
-  }
-
-  async function addQuestion(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(null);
-
-    if (!quizId) {
-      setMessage("Save the quiz details before adding questions.");
-      return;
-    }
 
     const cleanPrompt = prompt.trim();
     const cleanOptions = options
@@ -146,34 +114,79 @@ export function AdminQuizForm({ initialQuiz }: { initialQuiz?: AdminQuizFormInit
       return;
     }
 
-    setIsSavingQuestion(true);
-
-    const response = await fetch("/api/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        quizId,
+    setQuestions((current) => [
+      ...current,
+      {
         prompt: cleanPrompt,
+        type: questionType,
         options: cleanOptions,
-      }),
-    });
-    const payload = (await response.json()) as { error?: string };
+      },
+    ]);
+    setPrompt("");
+    setOptions(getInitialOptions(questionType));
+  }
 
-    if (!response.ok) {
-      setMessage(payload.error || "Could not add question.");
-    } else {
-      setPrompt("");
-      setOptions(getInitialOptions(questionType));
-      setMessage("Question added.");
-      router.refresh();
+  function removeQuestion(index: number) {
+    setQuestions((current) => current.filter((_, questionIndex) => questionIndex !== index));
+  }
+
+  async function createQuiz() {
+    setMessage(null);
+
+    if (!canCreateQuiz) {
+      setMessage("Add a title and at least one question before creating the quiz.");
+      return;
     }
 
-    setIsSavingQuestion(false);
+    setIsSaving(true);
+
+    try {
+      const quizResponse = await fetch("/api/quizzes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          subject,
+        }),
+      });
+      const quizPayload = (await quizResponse.json()) as { id?: string; error?: string };
+
+      if (!quizResponse.ok || !quizPayload.id) {
+        setMessage(quizPayload.error || "Could not create quiz.");
+        return;
+      }
+
+      for (const question of questions) {
+        const questionResponse = await fetch("/api/questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quizId: quizPayload.id,
+            prompt: question.prompt,
+            options: question.options,
+          }),
+        });
+        const questionPayload = (await questionResponse.json()) as { error?: string };
+
+        if (!questionResponse.ok) {
+          setMessage(questionPayload.error || "Quiz was created, but one question could not be saved.");
+          router.refresh();
+          return;
+        }
+      }
+
+      router.push(`/quiz/${quizPayload.id}`);
+      router.refresh();
+    } catch {
+      setMessage("Could not reach the quiz creator.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <form onSubmit={saveQuizDetails} className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-xl font-bold text-stone-950">Quiz details</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-semibold text-stone-700">
@@ -196,18 +209,16 @@ export function AdminQuizForm({ initialQuiz }: { initialQuiz?: AdminQuizFormInit
             />
           </label>
         </div>
-        <div className="mt-5 flex justify-end">
-          <button disabled={isSavingQuiz} className={primaryButtonClass}>
-            {isSavingQuiz ? "Saving..." : isEditing ? "Save changes" : "Create quiz"}
-          </button>
-        </div>
-      </form>
+      </section>
 
-      <form onSubmit={addQuestion} className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-stone-950">Questions</h2>
-          <p className="mt-1 text-sm text-stone-600">
-            Add multiple choice, true or false, or identification questions.
+      <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-stone-950">Questions</h2>
+            <p className="mt-1 text-sm text-stone-600">Add questions now. Create the quiz when everything looks ready.</p>
+          </div>
+          <p className="rounded-lg bg-stone-100 px-3 py-1.5 text-sm font-semibold text-stone-700">
+            {questions.length} added
           </p>
         </div>
 
@@ -281,18 +292,52 @@ export function AdminQuizForm({ initialQuiz }: { initialQuiz?: AdminQuizFormInit
           )}
 
           <div>
-            <button disabled={isSavingQuestion} className={quietButtonClass}>
-              {isSavingQuestion ? "Adding..." : "Add question"}
+            <button type="button" onClick={addQuestion} className={quietButtonClass}>
+              Add question
             </button>
           </div>
         </div>
-      </form>
+      </section>
+
+      {questions.length > 0 ? (
+        <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-bold text-stone-950">Review questions</h2>
+          <div className="mt-4 divide-y divide-stone-200">
+            {questions.map((question, index) => (
+              <div key={`${question.prompt}-${index}`} className="flex items-start justify-between gap-4 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-stone-500">
+                    {index + 1}. {questionTypes.find((type) => type.value === question.type)?.label}
+                  </p>
+                  <p className="mt-1 font-semibold text-stone-950">{question.prompt}</p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    Answer: {question.options.find((option) => option.isCorrect)?.label}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(index)}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {message ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           {message}
         </p>
       ) : null}
+
+      <div className="flex justify-end">
+        <button type="button" onClick={createQuiz} disabled={isSaving || !canCreateQuiz} className={primaryButtonClass}>
+          {isSaving ? "Creating quiz..." : "Create quiz"}
+        </button>
+      </div>
     </div>
   );
 }

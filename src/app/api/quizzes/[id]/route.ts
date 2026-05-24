@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireRouteUser } from "@/lib/api";
 import { createRouteSupabase } from "@/lib/supabase/route";
 
 export async function GET(_request: Request, context: RouteContext<"/api/quizzes/[id]">) {
@@ -30,4 +31,41 @@ export async function GET(_request: Request, context: RouteContext<"/api/quizzes
   }
 
   return NextResponse.json({ quiz: data });
+}
+
+export async function PUT(request: Request, context: RouteContext<"/api/quizzes/[id]">) {
+  const { id } = await context.params;
+  const { supabase, profile, user, response } = await requireRouteUser();
+
+  if (response) {
+    return response;
+  }
+
+  const body = (await request.json()) as {
+    title?: string;
+    description?: string;
+    subject?: string;
+  };
+
+  if (!body.title?.trim()) {
+    return NextResponse.json({ error: "Quiz title is required." }, { status: 400 });
+  }
+
+  const { data, error } = await supabase!
+    .from("quizzes")
+    .update({
+      title: body.title.trim(),
+      description: body.description?.trim() || null,
+      subject: body.subject?.trim() || null,
+    })
+    .eq("id", id)
+    .or(`created_by.eq.${user!.id}${profile?.role === "admin" ? ",id.eq." + id : ""}`)
+    .select("id")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ id: data.id });
 }
